@@ -3,6 +3,7 @@
 namespace Studit\H5PBundle\Twig;
 
 use Studit\H5PBundle\Core\H5PIntegration;
+use Studit\H5PBundle\Entity\Content;
 use Twig\TwigFilter;
 
 class H5PExtension extends \Twig\Extension\AbstractExtension
@@ -23,7 +24,11 @@ class H5PExtension extends \Twig\Extension\AbstractExtension
 
     public function getFilters(): array
     {
-        return [new TwigFilter('h5pCacheBuster', [$this, 'getH5PCacheBuster'])];
+        return [
+            new TwigFilter('h5pCacheBuster', [$this, 'getH5PCacheBuster']),
+            new TwigFilter('contentTitle', [$this, 'getContentTitle']),
+        ];
+
     }
 
     public function getH5PCacheBuster($script): string
@@ -40,4 +45,13 @@ class H5PExtension extends \Twig\Extension\AbstractExtension
     {
         return 'h5p_extension';
     }
+
+    public function getContentTitle(Content $content): ?string
+    {
+        $parameters = json_decode($content->getParameters(),true);
+        return isset($parameters['metadata']['title']) && is_string($parameters['metadata']['title'])
+            ? $parameters['metadata']['title']
+            : null;
+    }
+
 }

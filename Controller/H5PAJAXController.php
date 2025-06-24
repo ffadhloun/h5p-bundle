@@ -75,6 +75,7 @@ class H5PAJAXController extends AbstractController
     public function contentHubMetadataCache(Request $request): JsonResponse
     {
         $locale = $request->getLocale() !== null ? $request->getLocale() : 'en';
+        $locale = substr ($locale, 0, 2);
         ob_start();
 
         $editor = $this->h5peditor;
@@ -146,6 +147,7 @@ class H5PAJAXController extends AbstractController
         //$machineName, $majorVersion, $minorVersion, $languageCode, $prefix = '', $fileDir = '', $defaultLanguage
         $editor = $this->h5peditor;
         $locale = $request->getLocale() !== null ? $request->getLocale() : 'en';
+        $locale = substr($locale, 0, 2);
         $editor->ajax->action(
             \H5PEditorEndpoints::SINGLE_LIBRARY,
             $request->get('machineName'),

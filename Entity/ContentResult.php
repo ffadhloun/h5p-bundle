@@ -14,7 +14,7 @@ class ContentResult
     #[ORM\Id]
     #[ORM\Column(type: 'integer')]
     #[ORM\GeneratedValue(strategy:"AUTO")]
-    private ?int $id;
+    private $id;
     /**
      * @var Content|null
      */
@@ -52,14 +52,33 @@ class ContentResult
      */
     #[ORM\Column(type: "integer", nullable: true)]
     private ?int $time;
+
+    /**
+     * @param int|null $id
+     * @param Content|null $content
+     * @param int|string|null $userId
+     * @param int|null $score
+     * @param int|null $maxScore
+     * @param int|null $opened
+     * @param int|null $finished
+     * @param int|null $time
+     */
+    public function __construct($userId)
+    {
+
+        $this->content = null;
+        $this->userId = $userId;
+        $this->score = null;
+        $this->maxScore = null;
+        $this->opened = null;
+        $this->finished = null;
+        $this->time = null;
+    }
     /**
      * ContentResult constructor.
      * @param string $userId
      */
-    public function __construct($userId)
-    {
-        $this->userId = $userId;
-    }
+
     /**
      * @return int
      */

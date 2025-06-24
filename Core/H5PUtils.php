@@ -42,6 +42,9 @@ class H5PUtils
             if (method_exists($user, 'getId')) {
                 return $user->getId();
             }
+            if (method_exists($user, 'getUserId')) {
+                return $user->getUserId();
+            }
             return $user->getUserIdentifier();
         } else {
             return null;

@@ -323,7 +323,7 @@ class H5PIntegration extends H5PUtils
      */
     public function getTranslationFilePath(): string
     {
-        $language = $this->requestStack->getCurrentRequest()->getLocale();
+        $language =  substr($this->requestStack->getCurrentRequest()->getLocale(), 0, 2);
         $h5pAssetUrl = $this->getH5PAssetUrl();
         $languageFolder = "{$h5pAssetUrl}/h5p-editor/language";
         //check default language exist if exist load the file

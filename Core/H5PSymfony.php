@@ -2,11 +2,15 @@
 
 namespace Studit\H5PBundle\Core;
 
+use App\Entity\LmsTblSequence;
+use App\Entity\LmsTblSuivi;
+use App\Entity\LmsTblUser;
 use DateTime;
 use DateTimeInterface;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\managerInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use JsonSerializable;
 use Studit\H5PBundle\DependencyInjection\Configuration;
@@ -26,6 +30,7 @@ use Studit\H5PBundle\Event\LibrarySemanticsEvent;
 use GuzzleHttp\Client;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpKernel\Kernel;
@@ -45,7 +50,7 @@ class H5PSymfony implements \H5PFrameworkInterface
      */
     private $tokenStorage;
     /**
-     * @var EntityManagerInterface
+     * @var managerInterface
      */
     private $manager;
     /**
@@ -1194,5 +1199,224 @@ class H5PSymfony implements \H5PFrameworkInterface
     {
         // For moment only return true in future implement this db
         return true;
+    }
+
+    public function setCurrentUser(int $userId): void
+    {
+        $this->currentUserId = $userId;
+    }
+
+    /**
+     * Get H5P instance with resume data
+     */
+    public function getH5PInstance(int $contentId): array
+    {
+        $content = $this->loadContent($contentId);
+        if (!$content) {
+            throw new \Exception("Content not found");
+        }
+
+        // Get user progress data for resume
+        $userData = $this->getUserData($contentId, 'state');
+        $contentUserData = $this->getUserData($contentId, 'progress');
+
+        // Build H5P integration object
+        $integration = [
+            'baseUrl' => '',
+            'url' => '/h5p',
+            'postUserStatistics' => true,
+            'ajax' => [
+                'setFinished' => '/h5p/ajax/set-finished',
+                'contentUserData' => '/h5p/ajax/user-data'
+            ],
+            'saveFreq' => 30, // Save every 30 seconds
+            'user' => [
+                'name' => 'User',
+                'mail' => 'user@example.com'
+            ],
+            'hubIsEnabled' => false,
+            'contents' => [
+                'cid-' . $contentId => [
+                    'library' => $content['library']['name'] . ' ' . $content['library']['majorVersion'] . '.' . $content['library']['minorVersion'],
+                    'jsonContent' => $content['params'],
+                    'fullScreen' => $content['library']['fullscreen'] ?? false,
+                    'exportUrl' => '/h5p/exports/' . $contentId . '.h5p',
+                    'embedCode' => '<iframe src="/h5p/embed/' . $contentId . '" width="100%" height="400" frameborder="0" allowfullscreen></iframe>',
+                    'resizeCode' => '',
+                    'url' => '/h5p/embed/' . $contentId,
+                    'title' => $content['title'],
+                    'displayOptions' => [
+                        'frame' => false,
+                        'export' => false,
+                        'embed' => false,
+                        'copyright' => false,
+                        'icon' => false
+                    ],
+                    'contentUserData' => [
+                        'state' => $userData ?: '{}',
+                        'progress' => $contentUserData ? json_decode($contentUserData, true) : null
+                    ],
+                    'scripts' => $this->getContentScripts($content),
+                    'styles' => $this->getContentStyles($content)
+                ]
+            ]
+        ];
+
+        return $integration;
+    }
+
+    /**
+     * Save user progress (Resume feature)
+     */
+    public function saveUserProgress(int $contentId, string $dataType, string $data, bool $preloaded = false, bool $invalidate = false): JsonResponse
+    {
+        if (!$this->currentUserId) {
+            return new JsonResponse(['success' => false, 'message' => 'User not authenticated']);
+        }
+
+        $user =  $this->manager->find(LmsTblUser::class,$this->currentUserId);
+
+        $sequence = $this->manager->getRepository(LmsTblSequence::class)
+            ->findOneBy([
+                'sequenceH5p' => $contentId,
+            ]);
+
+        try {
+            $userProgress = $this->manager->getRepository(LmsTblSuivi::class)
+                ->findOneBy([
+                    'user' => $user,
+                    'sequence' => $contentId,
+                ]);
+
+            if (!$userProgress) {
+                $userProgress = new LmsTblSuivi();
+                $userProgress->setUser($this->currentUserId);
+                $userProgress->setSequence($sequence);
+            }
+
+            $userProgress->setSuiviSuspendData($data);
+            $userProgress->setCreatedAt(new \DateTime());
+
+
+            $this->manager->persist($userProgress);
+            $this->manager->flush();
+
+            return new JsonResponse(['success' => true]);
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get user data for resume
+     */
+    public function getUserData(int $contentId, string $dataType = null): ?string
+    {
+        if (!$this->currentUserId) {
+            return null;
+        }
+
+        $userProgress = $this->manager->getRepository(LmsTblSuivi::class)
+            ->findOneBy([
+                'user' => $this->currentUserId,
+                'sequence' => $contentId,
+            ]);
+
+        return $userProgress ? $userProgress->getSuiviSuspendData() : null;
+    }
+
+    /**
+     * Set content as finished
+     */
+    public function setFinished(int $contentId, int $score, int $maxScore, int $opened, int $finished, int $time): JsonResponse
+    {
+        if (!$this->currentUserId) {
+            return new JsonResponse(['success' => false, 'message' => 'User not authenticated']);
+        }
+
+        try {
+            $result = $this->manager->getRepository(H5PUserProgress::class)
+                ->findOneBy([
+                    'user_id' => $this->currentUserId,
+                    'content_id' => $contentId,
+                    'data_id' => 'finished'
+                ]);
+
+            if (!$result) {
+                $result = new H5PUserProgress();
+                $result->setUserId($this->currentUserId);
+                $result->setContentId($contentId);
+                $result->setDataId('finished');
+            }
+
+            $finishedData = [
+                'score' => $score,
+                'maxScore' => $maxScore,
+                'opened' => $opened,
+                'finished' => $finished,
+                'time' => $time,
+                'completedAt' => (new \DateTime())->format('Y-m-d H:i:s')
+            ];
+
+            $result->setData(json_encode($finishedData));
+            $result->setTimestamp(new \DateTime());
+
+            $this->manager->persist($result);
+            $this->manager->flush();
+
+            return new JsonResponse(['success' => true]);
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Check if user can resume content
+     */
+    public function canResume(int $contentId): bool
+    {
+        $userData = $this->getUserData($contentId, 'state');
+        return !empty($userData) && $userData !== '{}';
+    }
+
+    /**
+     * Get resume progress percentage
+     */
+    public function getResumeProgress(int $contentId): float
+    {
+        $progressData = $this->getUserData($contentId, 'progress');
+        if (!$progressData) {
+            return 0.0;
+        }
+
+        $progress = json_decode($progressData, true);
+        return isset($progress['progress']) ? (float)$progress['progress'] : 0.0;
+    }
+
+    /**
+     * Reset user progress for content
+     */
+    public function resetProgress(int $contentId): bool
+    {
+        if (!$this->currentUserId) {
+            return false;
+        }
+
+        try {
+            $userProgressItems = $this->manager->getRepository(H5PUserProgress::class)
+                ->findBy([
+                    'user_id' => $this->currentUserId,
+                    'content_id' => $contentId
+                ]);
+
+            foreach ($userProgressItems as $item) {
+                $this->manager->remove($item);
+            }
+
+            $this->manager->flush();
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 }
