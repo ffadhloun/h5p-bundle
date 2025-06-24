@@ -100,6 +100,13 @@ services:
 
     Studit\H5PBundle\Service\DoctrineParser: '@studit_h5p.doctrineParser'
 
+    studit_h5p.h5pContentService:
+        class: Studit\H5PBundle\Service\H5PContentService
+        arguments:
+          [ '@studit_h5p.integration', '@studit_h5p.library_storage', '@doctrine.orm.entity_manager', "@studit_h5p.core", '@studit_h5p.options' ]
+
+    Studit\H5PBundle\Service\H5PContentService: '@studit_h5p.h5pContentService'
+
     Studit\H5PBundle\Controller\H5PController:
         autowire: true
         autoconfigure: true
@@ -136,3 +143,17 @@ services:
     Studit\H5PBundle\Entity\OptionRepository:
         autowire: true
         tags: ['doctrine.repository_service']
+
+
+    studit_h5p.XApiVerbHandlerRegistry:
+        class: Studit\H5PBundle\Service\XApiVerbHandlerRegistry
+        arguments:
+            $handlers: !tagged_iterator app.xapi_verb_handler
+
+    Studit\H5PBundle\Service\XApiVerbHandlerRegistry: '@studit_h5p.XApiVerbHandlerRegistry'
+
+
+    studit_h5p.XApiStatementValidator:
+        class: Studit\H5PBundle\Service\XApiStatementValidator
+
+    Studit\H5PBundle\Service\XApiStatementValidator: '@studit_h5p.XApiStatementValidator'

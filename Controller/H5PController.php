@@ -3,16 +3,18 @@
 namespace Studit\H5PBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Studit\H5PBundle\Core\H5PIntegration;
 use Studit\H5PBundle\Core\H5POptions;
 use Studit\H5PBundle\Editor\LibraryStorage;
 use Studit\H5PBundle\Entity\Content;
+use Studit\H5PBundle\Form\Type\H5PType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Studit\H5PBundle\Core\H5PIntegration;
-use Studit\H5PBundle\Form\Type\H5PType;
 
 #[Route('/h5p/')]
 class H5PController extends AbstractController
@@ -124,7 +126,7 @@ class H5PController extends AbstractController
             $data = $form->getData();
             //create h5p content
             $contentId = $this->libraryStorage->storeLibraryData($data['library'], $data['parameters'], $content);
-            return $this->redirectToRoute('studit_h5p_h5p_show', ['content' => $contentId]);
+            return $this->redirectToRoute('studit_h5p_h5p_list', ['content' => $contentId]);
         }
         $h5pIntegration = $this->h5PIntegrations->getEditorIntegrationSettings($content ? $content->getId() : null);
         return $this->render(

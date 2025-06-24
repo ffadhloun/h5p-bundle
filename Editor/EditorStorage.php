@@ -118,7 +118,7 @@ class EditorStorage implements \H5peditorStorage
      */
     public function keepFile($fileId)
     {
-        var_dump($fileId);
+        //var_dump($fileId);
     }
 
     /**
