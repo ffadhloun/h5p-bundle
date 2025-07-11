@@ -64,17 +64,64 @@ class H5pBundleIncludeAssetsCommand extends Command
             $src = $fromDir . $subDir . $dir;
             $dist = $toDir . $subDir . $dir;
 
-            $copy
-                ? $this->recurseCopy($src, $dist)
-                : symlink($src, $dist);
+            if ($copy) {
+                $this->recurseCopy($src, $dist);
+            } else {
+                // Create the parent directory if it doesn't exist
+                $parentDir = dirname($dist);
+                if (!is_dir($parentDir)) {
+                    mkdir($parentDir, 0750, true);
+                }
+
+                // Calculate relative path from $dist to $src
+                $relativePath = $this->getRelativePath($dist, $src);
+
+                // Create relative symlink
+                symlink($relativePath, $dist);
+            }
         }
+    }
+
+    /**
+     * Calculate the relative path from target to source
+     */
+    private function getRelativePath(string $from, string $to): string
+    {
+        // Normalize paths
+        $from = rtrim($from, '/');
+        $to = rtrim($to, '/');
+
+        // Get absolute paths
+        $fromParts = explode('/', $from);
+        $toParts = explode('/', $to);
+
+        // Remove common path parts
+        $i = 0;
+        while (isset($fromParts[$i]) && isset($toParts[$i]) && $fromParts[$i] === $toParts[$i]) {
+            $i++;
+        }
+
+        // Build relative path
+        $relativeParts = [];
+
+        // Add .. for each remaining part in $from path (excluding the file/directory name itself)
+        for ($j = $i; $j < count($fromParts) - 1; $j++) {
+            $relativeParts[] = '..';
+        }
+
+        // Add remaining parts from $to path
+        for ($j = $i; $j < count($toParts); $j++) {
+            $relativeParts[] = $toParts[$j];
+        }
+
+        return implode('/', $relativeParts);
     }
 
     private function recurseCopy(string $src, string $dst): void
     {
         $dir = opendir($src);
         // Restrict the permission to 0750 not upper
-        @mkdir($dst, 0750);
+        @mkdir($dst, 0750, true);
         while (false !== ($file = readdir($dir))) {
             if (($file != '.') && ($file != '..')) {
                 if (is_dir($src . '/' . $file)) {
