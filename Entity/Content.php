@@ -3,11 +3,13 @@
 namespace Studit\H5PBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: ContentRepository::class)]
 #[ORM\Table(name: 'h5p_content')]
 class Content
 {
+    use TimestampableEntity;
     #[ORM\Id]
     #[ORM\Column(type: "integer")]
     #[ORM\GeneratedValue(strategy:"AUTO")]
