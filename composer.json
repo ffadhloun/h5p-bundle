@@ -1,5 +1,5 @@
 {
-  "name": "jorisdugue/h5p-bundle",
+  "name": "ffadhloun/h5p-bundle",
   "version": "3.0.4",
   "type": "symfony-bundle",
   "description": "H5P Bundle for Symfony 5, 6 and Symfony 7",
@@ -25,6 +25,11 @@
       "email": "joris@zaruike.dev",
       "role": "developer",
       "homepage": "https://zaruike.dev"
+    },
+    {
+      "name": "Mohamed Fradj Fadhloun",
+      "email": "ffadhloun.in@proton.me",
+      "role": "developer"
     }
   ],
   "require": {
