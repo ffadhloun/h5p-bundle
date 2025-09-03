@@ -150,14 +150,22 @@ class H5POptions
 
     /**
      * Helper function to ensure storage_dir always starts with a '/'.
+     * Fixed: Now properly handles string values instead of arrays
      *
      * @return string
      */
     private function formatStorageDir(): string
     {
-        // Setup the default value to empty string
-        $dir = $this->getOption('storage_dir', [""]);
-        return $dir[0] === '/' ? $dir : "/{$dir}";
+        // Get the storage directory, default to 'h5p' if not set
+        $dir = $this->getOption('storage_dir', 'h5p');
+
+        // Ensure it's a string
+        if (is_array($dir)) {
+            $dir = !empty($dir[0]) ? $dir[0] : 'h5p';
+        }
+
+        // Ensure it starts with a forward slash
+        return (string)$dir[0] === '/' ? $dir : "/{$dir}";
     }
 
     /**
@@ -168,19 +176,46 @@ class H5POptions
         return $this->formatStorageDir();
     }
 
+    /**
+     * Get absolute H5P path with trailing slash (for directory operations)
+     * Fixed: Now correctly points to public directory
+     *
+     * @return string
+     */
     public function getAbsoluteH5PPathWithSlash(): string
     {
-        return $this->getAbsoluteWebPath() . $this->formatStorageDir() . '/';
+        return $this->getPublicDirectoryPath() . $this->formatStorageDir() . '/';
     }
 
+    /**
+     * Get absolute H5P path without trailing slash
+     * Fixed: Now correctly points to public directory
+     *
+     * @return string
+     */
     public function getAbsoluteH5PPath(): string
     {
-        return rtrim($this->getAbsoluteWebPath(), '/') . $this->formatStorageDir();
+        return $this->getPublicDirectoryPath() . $this->formatStorageDir();
     }
 
+    /**
+     * Get the absolute path to the public directory
+     * This replaces getAbsoluteWebPath() to be more explicit
+     *
+     * @return string
+     */
+    public function getPublicDirectoryPath(): string
+    {
+        return rtrim($this->projectRootDir, '/') . '/public';
+    }
+
+    /**
+     * @deprecated Use getPublicDirectoryPath() instead
+     * Kept for backward compatibility but now correctly points to public directory
+     */
     public function getAbsoluteWebPath(): string
     {
-        return $this->projectRootDir . '/' . $this->getOption('web_dir');
+        return $this->getPublicDirectoryPath();
     }
 
     public function getLibraryFileUrl(string $libraryFolderName, string $fileName): string

@@ -18,5 +18,6 @@ class H5PXapiVerbs
         'CREATED' => 'http://adlnet.gov/expapi/verbs/created',
         'SHARED' => 'http://adlnet.gov/expapi/verbs/shared',
         'VOIDED' => 'http://adlnet.gov/expapi/verbs/voided',
+        'PROGRESSED' => 'http://adlnet.gov/expapi/verbs/progressed',
     ];
 }
