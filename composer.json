@@ -42,7 +42,7 @@
     "symfony/framework-bundle": "~6.0|~7.0",
     "symfony/serializer": "~6.0|~7.0",
     "twig/extra-bundle": "^3.0",
-    "doctrine/doctrine-bundle": "^2.13",
+    "doctrine/doctrine-bundle": "~2.0|~3.0",
     "symfony/security-bundle": "~6.0|~7.0",
     "symfony/asset": "~6.0|~7.0",
     "symfony/form": "~6.0|~7.0",
